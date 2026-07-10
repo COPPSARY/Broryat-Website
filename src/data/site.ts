@@ -184,7 +184,7 @@ export const UI = {
     heroBody:
       "ចូលរួម Channel តេលេក្រាមរបស់យើងសម្រាប់ព័ត៌មានថ្មីៗ ហើយផ្ញើតំណភ្ជាប់ (Link) សារ ឬឯកសារដែលអ្នកសង្ស័យមកកាន់ Broryat ដើម្បីវាវិភាគរកហានិភ័យឱ្យបានរហ័ស។",
     heroChannelLabel: "Channel តេលេក្រាម",
-    heroChannelCta: "ចូលទៅកាន់ Channel តេលេក្រាម",
+    heroChannelCta: "broryat_ai",
     heroImage: "/assets/hero-image.png",
     heroImageCredit:
       "ប្រភពរូបភាព៖ ផ្អែកលើរូបភាពផ្សព្វផ្សាយរបស់នាយកដ្ឋានប្រឆាំងបទល្មើសបច្ចេកវិទ្យា អំពីការវាយប្រហារបោកប្រាស់ (Phishing) ថ្មីៗលើ Telegram។ Kiripost តាមរយៈ ACCD",
@@ -270,7 +270,7 @@ export const UI = {
     heroBody:
       "Join our Telegram channel for updates, then send suspicious links, messages, or files to Broryat for fast risk analysis.",
     heroChannelLabel: "Telegram Channel",
-    heroChannelCta: "Join our Telegram channel",
+    heroChannelCta: "broryat_ai",
     heroImage: "/assets/hero-image.png",
     heroImageCredit:
       "Credit: the poster of the Anti-Cyber Crime Department has observed recent phishing attacks on Telegram. Kiripost via ACCD",
