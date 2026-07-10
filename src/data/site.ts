@@ -180,9 +180,10 @@ export const UI = {
     browseArticles: "មើលអត្ថបទទាំងអស់",
     browseTutorials: "មើលមេរៀនទាំងអស់",
     goToBot: "ទៅកាន់ Telegram Bot",
+    homePageTitle: "Broryat | AI Bot ដែលជួយការពារអ្នកពីការបោកប្រាស់តាមប្រព័ន្ធអ៊ីនធឺណិត",
     heroTitle: "ប្រុងប្រយ័ត្នលើ Telegram!",
     heroBody:
-      "ចូលរួម Channel តេលេក្រាមរបស់យើងសម្រាប់ព័ត៌មានថ្មីៗ ហើយផ្ញើតំណភ្ជាប់ (Link) សារ ឬឯកសារដែលអ្នកសង្ស័យមកកាន់ Broryat ដើម្បីវាវិភាគរកហានិភ័យឱ្យបានរហ័ស។",
+      "Broryat គឺជា AI Bot ដែលជួយការពារអ្នកពីការបោកប្រាស់តាមប្រព័ន្ធអ៊ីនធឺណិត។ គ្រាន់តែផ្ញើតំណភ្ជាប់ (Link) សារ ឬឯកសារដែលអ្នកសង្ស័យមកកាន់ Bot នោះវានឹងវិភាគរកហានិភ័យ រួចផ្តល់ការណែនាំដល់អ្នកភ្លាមៗ។",
     heroChannelLabel: "Channel តេលេក្រាម",
     heroChannelCta: "broryat_ai",
     heroImage: "/assets/hero-image.png",
@@ -266,9 +267,10 @@ export const UI = {
     browseArticles: "Browse all articles",
     browseTutorials: "Browse all tutorials",
     goToBot: "Telegram Bot",
+    homePageTitle: "Broryat | AI bot that helps protect you from online scams",
     heroTitle: "Becareful of Scammers on Telegram!",
     heroBody:
-      "Join our Telegram channel for updates, then send suspicious links, messages, or files to Broryat for fast risk analysis.",
+      "Broryat is an AI bot that helps protect people from online scams. Send the bot a suspicious link, message, or file to analyze the risk and get immediate guidance.",
     heroChannelLabel: "Telegram Channel",
     heroChannelCta: "broryat_ai",
     heroImage: "/assets/hero-image.png",
