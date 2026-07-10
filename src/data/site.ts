@@ -3,6 +3,7 @@ export const SITE = {
   wordmark: "ប្រយ័ត្ន",
   telegramUrl: "https://t.me/broryat_bot",
   telegramHandle: "@broryat_bot",
+  telegramChannelUrl: "https://t.me/broryat_ai",
   footerLinks: [
     {
       label: "Sayana Studio",
@@ -181,8 +182,9 @@ export const UI = {
     goToBot: "ទៅកាន់ Telegram Bot",
     heroTitle: "ប្រុងប្រយ័ត្នលើ Telegram!",
     heroBody:
-      "Broryat គឺជា AI Bot ដែលជួយការពារអ្នកពីការបោកប្រាស់តាមប្រព័ន្ធអ៊ីនធឺណិត។ គ្រាន់តែផ្ញើតំណភ្ជាប់ (Link) សារ ឬឯកសារដែលអ្នកសង្ស័យមកកាន់ Bot នោះវានឹងវិភាគរកហានិភ័យ រួចផ្តល់ការណែនាំដល់អ្នកភ្លាមៗ។",
-    heroHandleLabel: "គណនី Telegram ផ្លូវការ",
+      "ចូលរួម Channel តេលេក្រាមរបស់យើងសម្រាប់ព័ត៌មានថ្មីៗ ហើយផ្ញើតំណភ្ជាប់ (Link) សារ ឬឯកសារដែលអ្នកសង្ស័យមកកាន់ Broryat ដើម្បីវាវិភាគរកហានិភ័យឱ្យបានរហ័ស។",
+    heroChannelLabel: "Channel តេលេក្រាម",
+    heroChannelCta: "ចូលទៅកាន់ Channel តេលេក្រាម",
     heroImage: "/assets/hero-image.png",
     heroImageCredit:
       "ប្រភពរូបភាព៖ ផ្អែកលើរូបភាពផ្សព្វផ្សាយរបស់នាយកដ្ឋានប្រឆាំងបទល្មើសបច្ចេកវិទ្យា អំពីការវាយប្រហារបោកប្រាស់ (Phishing) ថ្មីៗលើ Telegram។ Kiripost តាមរយៈ ACCD",
@@ -266,8 +268,9 @@ export const UI = {
     goToBot: "Telegram Bot",
     heroTitle: "Becareful of Scammers on Telegram!",
     heroBody:
-      "Broryat is an AI bot that helps protect people from online scams. Send the bot a suspicious link, message, or file to analyze the risk and get immediate guidance.",
-    heroHandleLabel: "Telegram handle",
+      "Join our Telegram channel for updates, then send suspicious links, messages, or files to Broryat for fast risk analysis.",
+    heroChannelLabel: "Telegram Channel",
+    heroChannelCta: "Join our Telegram channel",
     heroImage: "/assets/hero-image.png",
     heroImageCredit:
       "Credit: the poster of the Anti-Cyber Crime Department has observed recent phishing attacks on Telegram. Kiripost via ACCD",
