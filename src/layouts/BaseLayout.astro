@@ -10,6 +10,7 @@ interface Props {
   title: string;
   description: string;
   alternateLocaleHref: string;
+  includeSoftwareApplicationSchema?: boolean;
   keywords?: readonly string[];
   ogImage?: string;
   ogType?: "website" | "article";
@@ -24,6 +25,7 @@ const {
   title,
   description,
   alternateLocaleHref,
+  includeSoftwareApplicationSchema = false,
   keywords,
   ogImage,
   ogType = "website",
@@ -67,14 +69,17 @@ const graph: Record<string, unknown>[] = [
     "@id": `${SEO.siteUrl}/#website`,
     url: SEO.siteUrl,
     name: SITE.name,
-    description,
+    description: SEO.description[locale],
     inLanguage: ogLocale,
     publisher: { "@id": `${SEO.siteUrl}/#organization` },
   },
-  {
+];
+
+if (includeSoftwareApplicationSchema) {
+  graph.push({
     "@type": "SoftwareApplication",
     name: SITE.name,
-    description,
+    description: SEO.applicationDescription[locale],
     applicationCategory: "SecurityApplication",
     operatingSystem: "Telegram",
     url: SITE.telegramUrl,
@@ -84,8 +89,8 @@ const graph: Record<string, unknown>[] = [
       priceCurrency: "USD",
     },
     publisher: { "@id": `${SEO.siteUrl}/#organization` },
-  },
-];
+  });
+}
 
 if (structuredData) {
   graph.push(...(Array.isArray(structuredData) ? structuredData : [structuredData]));

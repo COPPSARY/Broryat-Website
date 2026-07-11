@@ -23,6 +23,14 @@ export const DEFAULT_LOCALE: Locale = "kh";
 export const SEO = {
   siteUrl: "https://broryat.tech",
   defaultOgImage: "/branding/logo.png",
+  description: {
+    kh: "Broryat គឺជាវេទិកាការពារការបោកប្រាស់តាមអ៊ីនធឺណិតសម្រាប់អ្នកប្រើប្រាស់ខ្មែរ ដែលផ្តល់ bot លើ Telegram សម្រាប់ពិនិត្យ link សារ និងឯកសារសង្ស័យ មុនពេលអ្នកបើក ឬចែករំលែកវា។",
+    en: "Broryat is a Cambodian anti-scam platform with a Telegram bot that helps Khmer-speaking users review suspicious links, messages, and files before opening or forwarding them.",
+  },
+  applicationDescription: {
+    kh: "Broryat Bot ជា Telegram bot សម្រាប់វិភាគ link សារ និងឯកសារសង្ស័យ ដើម្បីជួយការពារអ្នកពី phishing malware និងល្បិចបោកប្រាស់តាមអ៊ីនធឺណិត។",
+    en: "Broryat Bot is a Telegram bot for reviewing suspicious links, messages, and files to help users avoid phishing, malware, and common online scams.",
+  },
   // Maps our locale codes to full BCP-47 / OG locale codes
   ogLocale: {
     kh: "km_KH",
@@ -181,6 +189,8 @@ export const UI = {
     browseTutorials: "មើលមេរៀនទាំងអស់",
     goToBot: "ទៅកាន់ Telegram Bot",
     homePageTitle: "Broryat | AI Bot ដែលជួយការពារអ្នកពីការបោកប្រាស់តាមប្រព័ន្ធអ៊ីនធឺណិត",
+    homePageDescription:
+      "Broryat គឺជាវេទិកាការពារការបោកប្រាស់តាមអ៊ីនធឺណិតសម្រាប់អ្នកប្រើប្រាស់ខ្មែរ ដែលមាន AI bot លើ Telegram សម្រាប់ពិនិត្យ link សារ និងឯកសារសង្ស័យ មុនពេលអ្នកបើកវា។",
     heroTitle: "ប្រុងប្រយ័ត្នលើ Telegram!",
     heroBody:
       "Broryat គឺជា AI Bot ដែលជួយការពារអ្នកពីការបោកប្រាស់តាមប្រព័ន្ធអ៊ីនធឺណិត។ គ្រាន់តែផ្ញើតំណភ្ជាប់ (Link) សារ ឬឯកសារដែលអ្នកសង្ស័យមកកាន់ Bot នោះវានឹងវិភាគរកហានិភ័យ រួចផ្តល់ការណែនាំដល់អ្នកភ្លាមៗ។",
@@ -268,6 +278,8 @@ export const UI = {
     browseTutorials: "Browse all tutorials",
     goToBot: "Telegram Bot",
     homePageTitle: "Broryat | AI bot that helps protect you from online scams",
+    homePageDescription:
+      "Broryat is a Cambodian anti-scam platform with an AI Telegram bot for reviewing suspicious links, messages, and files before people open or forward them.",
     heroTitle: "Becareful of Scammers on Telegram!",
     heroBody:
       "Broryat is an AI bot that helps protect people from online scams. Send the bot a suspicious link, message, or file to analyze the risk and get immediate guidance.",
