@@ -666,15 +666,16 @@ h4 {
 
 .usage-video {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
+  justify-content: center;
 }
 
 .usage-video video {
   display: block;
-  width: auto;
-  max-width: 100%;
-  height: clamp(30rem, 62vh, 42rem);
-  object-fit: cover;
+  width: min(100%, 24rem);
+  height: auto;
+  max-height: clamp(30rem, 62vh, 42rem);
+  object-fit: contain;
   border: 1px solid var(--ink);
   background: #000;
 }
@@ -687,10 +688,10 @@ h4 {
 
 .tutorial-video video {
   display: block;
-  width: auto;
-  max-width: 100%;
-  height: clamp(28rem, 60vh, 40rem);
-  object-fit: cover;
+  width: min(100%, 24rem);
+  height: auto;
+  max-height: clamp(28rem, 60vh, 40rem);
+  object-fit: contain;
   border: 1px solid var(--ink);
   background: #000;
 }
@@ -1123,6 +1124,7 @@ h4 {
     max-width: 22rem;
     height: auto;
     max-height: 32rem;
+    object-fit: contain;
   }
 
   .tutorial-video video {
@@ -1130,6 +1132,7 @@ h4 {
     max-width: 22rem;
     height: auto;
     max-height: 32rem;
+    object-fit: contain;
   }
 
   .hero-visual {
