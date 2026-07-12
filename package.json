@@ -9,8 +9,8 @@
     "start": "node ./dist/server/entry.mjs"
   },
   "dependencies": {
-    "@astrojs/node": "^11.0.2",
     "@astrojs/sitemap": "^3.7.3",
+    "@astrojs/vercel": "^11.0.2",
     "@lucide/astro": "^1.24.0",
     "@supabase/supabase-js": "^2.110.2",
     "@tiptap/core": "^3.27.3",
