@@ -2,6 +2,11 @@
   "name": "broryat-website",
   "private": true,
   "type": "module",
+  "overrides": {
+    "sanitize-html": {
+      "htmlparser2": "^9.1.0"
+    }
+  },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
