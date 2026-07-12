@@ -1,10 +1,12 @@
 ---
 import LandingPage from "../components/LandingPage.astro";
-import { getLocalizedCollection } from "../lib/content";
+import { getLocalizedArticles, getLocalizedCollection } from "../lib/content";
+import { getEditableSiteSettings } from "../lib/server/siteSettings";
 
 const locale = "kh";
-const latestArticles = (await getLocalizedCollection("articles", locale)).slice(0, 3);
+const latestArticles = (await getLocalizedArticles(locale)).slice(0, 3);
 const tutorials = await getLocalizedCollection("tutorials", locale);
+const editableSettings = await getEditableSiteSettings(locale);
 ---
 
 <LandingPage
@@ -12,4 +14,5 @@ const tutorials = await getLocalizedCollection("tutorials", locale);
   latestArticles={latestArticles}
   tutorials={tutorials}
   alternateLocaleHref="/en/"
+  editableSettings={editableSettings}
 />

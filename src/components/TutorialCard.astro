@@ -1,11 +1,11 @@
 ---
 import { UI, type Locale } from "../data/site";
 import { getEntryUrl } from "../lib/content";
-import type { CollectionEntry } from "astro:content";
+import type { MarkdownTutorial } from "../lib/content";
 
 interface Props {
   locale: Locale;
-  tutorial: CollectionEntry<"tutorials">;
+  tutorial: MarkdownTutorial;
 }
 
 const { locale, tutorial } = Astro.props;

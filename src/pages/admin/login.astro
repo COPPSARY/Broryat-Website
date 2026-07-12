@@ -1,0 +1,55 @@
+---
+import { login, setSessionCookie, clearSessionCookie } from "../../lib/server/auth";
+import "../../styles/global.css";
+
+export const prerender = false;
+
+let error = "";
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const email = String(form.get("email") ?? "");
+  const password = String(form.get("password") ?? "");
+
+  try {
+    const session = await login(email, password);
+    if (session) {
+      setSessionCookie(Astro, session);
+      return Astro.redirect("/admin/");
+    }
+    clearSessionCookie(Astro);
+    error = "Invalid email, password, or admin access.";
+  } catch (caughtError) {
+    console.error("Admin login configuration error:", caughtError);
+    error = "Admin login is not configured. Check server logs for the exact missing env or database error.";
+  }
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Broryat Admin Login</title>
+  </head>
+  <body class="admin-screen">
+    <main class="admin-auth">
+      <form method="post" class="admin-panel">
+        <p class="kicker">Broryat Admin</p>
+        <h1>Sign in</h1>
+        {error && <p class="admin-error">{error}</p>}
+        <label>
+          <span>Email</span>
+          <input name="email" type="email" autocomplete="email" required />
+        </label>
+        <label>
+          <span>Password</span>
+          <input name="password" type="password" autocomplete="current-password" required />
+        </label>
+        <button class="button primary" type="submit">Sign in</button>
+      </form>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,47 @@
+---
+import { requireAdmin } from "../../lib/server/auth";
+import { UI } from "../../data/site";
+import { getEditableSiteSettings } from "../../lib/server/siteSettings";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+
+export const prerender = false;
+
+const session = await requireAdmin(Astro);
+if (!session) {
+  return Astro.redirect("/admin/login/");
+}
+
+const [en, kh] = await Promise.all([
+  getEditableSiteSettings("en"),
+  getEditableSiteSettings("kh"),
+]);
+---
+
+<AdminLayout title="Site Settings">
+  <header class="admin-topbar">
+    <div>
+      <p class="kicker">Website</p>
+      <h1>Site settings</h1>
+    </div>
+  </header>
+
+  <form class="admin-panel admin-article-form" method="post" action="/api/admin/site-settings/">
+    <section class="admin-grid-two">
+      <div>
+        <h2>English homepage</h2>
+        <label><span>Hero title</span><input name="enHeroTitle" value={en.heroTitle ?? UI.en.heroTitle} /></label>
+        <label><span>Hero body</span><textarea name="enHeroBody" rows="4">{en.heroBody ?? UI.en.heroBody}</textarea></label>
+        <label><span>CTA title</span><input name="enCtaTitle" value={en.ctaTitle ?? UI.en.ctaTitle} /></label>
+        <label><span>CTA body</span><textarea name="enCtaBody" rows="3">{en.ctaBody ?? UI.en.ctaBody}</textarea></label>
+      </div>
+      <div>
+        <h2>Khmer homepage</h2>
+        <label><span>Hero title</span><input name="khHeroTitle" value={kh.heroTitle ?? UI.kh.heroTitle} /></label>
+        <label><span>Hero body</span><textarea name="khHeroBody" rows="4">{kh.heroBody ?? UI.kh.heroBody}</textarea></label>
+        <label><span>CTA title</span><input name="khCtaTitle" value={kh.ctaTitle ?? UI.kh.ctaTitle} /></label>
+        <label><span>CTA body</span><textarea name="khCtaBody" rows="3">{kh.ctaBody ?? UI.kh.ctaBody}</textarea></label>
+      </div>
+    </section>
+    <button class="button primary" type="submit">Save settings</button>
+  </form>
+</AdminLayout>

@@ -19,19 +19,25 @@ import {
   type Locale,
 } from "../data/site";
 import { getEntryUrl, getTranslatedEntry } from "../lib/content";
-import type { CollectionEntry } from "astro:content";
+import type { MarkdownTutorial, SiteArticle } from "../lib/content";
+import type { EditableSiteSettings } from "../lib/server/siteSettings";
 
 interface Props {
   locale: Locale;
-  latestArticles: CollectionEntry<"articles">[];
-  tutorials: CollectionEntry<"tutorials">[];
+  latestArticles: SiteArticle[];
+  tutorials: MarkdownTutorial[];
   alternateLocaleHref: string;
+  editableSettings?: EditableSiteSettings;
 }
 
-const { locale, latestArticles, tutorials, alternateLocaleHref } = Astro.props;
+const { locale, latestArticles, tutorials, alternateLocaleHref, editableSettings = {} } = Astro.props;
 const ui = UI[locale];
 const features = HOME_FEATURES[locale];
 const examples = HOME_EXAMPLES[locale];
+const heroTitle = editableSettings.heroTitle || ui.heroTitle;
+const heroBody = editableSettings.heroBody || ui.heroBody;
+const ctaTitle = editableSettings.ctaTitle || ui.ctaTitle;
+const ctaBody = editableSettings.ctaBody || ui.ctaBody;
 
 // Icons paired to each feature by order:
 // 1) AI intent analysis  2) Link & file scanning  3) Group chat protection
@@ -135,8 +141,8 @@ const renderFeatureText = (text: string) => {
     <section class="home-hero shell">
       <div class="hero-grid">
         <div class="hero-main">
-          <h1>{ui.heroTitle}</h1>
-          <p class="hero-copy">{ui.heroBody}</p>
+          <h1>{heroTitle}</h1>
+          <p class="hero-copy">{heroBody}</p>
 
           <div class="hero-cta-row">
             <p class="hero-handle">
@@ -289,20 +295,23 @@ const renderFeatureText = (text: string) => {
       </div>
 
       <div class="news-list">
-        {latestArticles.map((article) => (
+        {latestArticles.map((article) => {
+          const data = "data" in article ? article.data : article;
+          return (
           <article class="news-item">
-            <time datetime={article.data.date.toISOString()}>{formatDate(article.data.date, locale)}</time>
+            <time datetime={data.date.toISOString()}>{formatDate(data.date, locale)}</time>
             <div class="news-copy">
-              <span class="news-tag">{article.data.tag}</span>
-              <h3>{article.data.title}</h3>
-              <p>{article.data.description}</p>
-              <a class="inline-link" href={getEntryUrl("articles", locale, article.data.translationId)}>
+              <span class="news-tag">{data.tag}</span>
+              <h3>{data.title}</h3>
+              <p>{data.description}</p>
+              <a class="inline-link" href={getEntryUrl("articles", locale, data.translationId)}>
                 {ui.readArticle}
               </a>
             </div>
-            <img class="news-cover" src={article.data.coverImage} alt="" loading="lazy" />
+            <img class="news-cover" src={data.coverImage} alt="" loading="lazy" />
           </article>
-        ))}
+          );
+        })}
       </div>
     </section>
 
@@ -334,8 +343,8 @@ const renderFeatureText = (text: string) => {
     <section class="cta shell">
       <div>
         <p class="kicker">{SITE.name}</p>
-        <h2>{ui.ctaTitle}</h2>
-        <p>{ui.ctaBody}</p>
+        <h2>{ctaTitle}</h2>
+        <p>{ctaBody}</p>
       </div>
       <a class="button primary" href={SITE.telegramUrl} target="_blank" rel="noreferrer">
         {ui.goToBot}

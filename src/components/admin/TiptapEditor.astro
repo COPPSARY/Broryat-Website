@@ -1,0 +1,112 @@
+---
+interface Props {
+  name: string;
+  id: string;
+  content?: string;
+  required?: boolean;
+}
+
+const { name, id, content = "", required = false } = Astro.props;
+---
+
+<div class="editor-wrap" id={`editor-${id}`} data-field-id={id}>
+  <div class="editor-tabs">
+    <button type="button" class="editor-tab is-active" data-tab="edit">Edit</button>
+    <button type="button" class="editor-tab" data-tab="preview">Preview</button>
+  </div>
+
+  <div class="editor-pane editor-edit is-active" data-pane="edit">
+    <textarea
+      class="md-textarea"
+      id={`md-${id}`}
+      spellcheck="false"
+      placeholder="Write markdown here..."
+      {required ? "required" : undefined}
+    >{content}</textarea>
+  </div>
+
+  <div class="editor-pane editor-preview" data-pane="preview">
+    <div class="preview-content prose"></div>
+  </div>
+
+  <input type="hidden" name={name} id={id} value={content} {required ? "required" : undefined} />
+</div>
+
+<script>
+  function renderMd(text: string): string {
+    let html = text;
+
+    html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+    html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
+    html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+
+    html = html.replace(/^> (.+)$/gm, "<blockquote><p>$1</p></blockquote>");
+
+    html = html.replace(/^---$/gm, "<hr />");
+
+    html = html.replace(/^\s*[-*+] (.+)$/gm, "<li>$1</li>");
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`);
+
+    html = html.replace(/^\s*\d+\. (.+)$/gm, "<li>$1</li>");
+
+    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, "<em>$1</em>");
+    html = html.replace(/_(.+?)_/g, "<em>$1</em>");
+    html = html.replace(/~~(.+?)~~/g, "<del>$1</del>");
+
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+    html = html.replace(/^(?!<[a-z])((?!^$).+)$/gm, "<p>$1</p>");
+    html = html.replace(/<p><\/p>/g, "");
+
+    return html.trim();
+  }
+
+  function initEditor(wrap: HTMLElement) {
+    const fieldId = wrap.dataset.fieldId!;
+    const hiddenInput = document.getElementById(fieldId) as HTMLInputElement;
+    const textarea = document.getElementById(`md-${fieldId}`) as HTMLTextAreaElement;
+    const tabs = wrap.querySelectorAll(".editor-tab");
+    const panes = wrap.querySelectorAll(".editor-pane");
+    const previewEl = wrap.querySelector(".preview-content") as HTMLElement;
+
+    function autoResize() {
+      textarea.style.height = "auto";
+      textarea.style.height = textarea.scrollHeight + "px";
+    }
+
+    textarea.addEventListener("input", () => {
+      hiddenInput.value = textarea.value;
+      autoResize();
+    });
+
+    textarea.addEventListener("keydown", (e) => {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        textarea.value = textarea.value.substring(0, start) + "  " + textarea.value.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start + 2;
+        hiddenInput.value = textarea.value;
+      }
+    });
+
+    function switchTab(tab: string) {
+      tabs.forEach((t) => t.classList.toggle("is-active", (t as HTMLElement).dataset.tab === tab));
+      panes.forEach((p) => p.classList.toggle("is-active", (p as HTMLElement).dataset.pane === tab));
+      if (tab === "preview") {
+        const md = hiddenInput.value || "";
+        previewEl.innerHTML = md ? renderMd(md) : '<p class="preview-empty">Nothing to preview yet.</p>';
+      }
+    }
+
+    tabs.forEach((tab) => tab.addEventListener("click", () => switchTab((tab as HTMLElement).dataset.tab!)));
+
+    autoResize();
+    hiddenInput.value = textarea.value;
+  }
+
+  document.querySelectorAll(".editor-wrap").forEach((el) => initEditor(el as HTMLElement));
+</script>

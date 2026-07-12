@@ -1,0 +1,79 @@
+---
+import { requireAdmin } from "../../../lib/server/auth";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import TiptapEditor from "../../../components/admin/TiptapEditor.astro";
+
+export const prerender = false;
+
+const session = await requireAdmin(Astro);
+if (!session) {
+  return Astro.redirect("/admin/login/");
+}
+---
+
+<AdminLayout title="New Article">
+  <header class="admin-topbar">
+    <div>
+      <p class="kicker">Articles</p>
+      <h1>New article</h1>
+    </div>
+  </header>
+
+  <form class="admin-panel admin-article-form" method="post" action="/api/admin/articles/" enctype="multipart/form-data">
+    <div class="admin-form-row">
+      <label>
+        <span>Translation ID / URL slug</span>
+        <input name="translationId" id="translationId" placeholder="telegram-security-guide" required />
+      </label>
+      <label>
+        <span>Tag</span>
+        <input name="tag" placeholder="Guide" required />
+      </label>
+      <label>
+        <span>Status</span>
+        <select name="status">
+          <option value="draft">Draft</option>
+          <option value="published">Published</option>
+        </select>
+      </label>
+    </div>
+
+    <label>
+      <span>Cover image</span>
+      <input name="cover" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required />
+    </label>
+
+    <div class="admin-language-tabs" role="tablist">
+      <button type="button" class="is-active" data-lang-tab="en">English</button>
+      <button type="button" data-lang-tab="kh">Khmer</button>
+    </div>
+
+    <section class="admin-lang-panel is-active" data-lang-panel="en">
+      <label><span>English title</span><input name="enTitle" id="enTitle" required /></label>
+      <label><span>English description</span><textarea name="enDescription" id="enDescription" rows="3" required></textarea></label>
+      <label><span>English body</span></label>
+      <TiptapEditor name="enBody" id="enBody" required={true} />
+    </section>
+
+    <section class="admin-lang-panel" data-lang-panel="kh">
+      <label><span>Khmer title</span><input name="khTitle" id="khTitle" required /></label>
+      <label><span>Khmer description</span><textarea name="khDescription" id="khDescription" rows="3" required></textarea></label>
+      <label><span>Khmer body</span></label>
+      <TiptapEditor name="khBody" id="khBody" required={true} />
+    </section>
+
+    <button class="button primary" type="submit">Save article</button>
+  </form>
+
+  <script>
+    const panels = document.querySelectorAll("[data-lang-panel]");
+    const tabs = document.querySelectorAll("[data-lang-tab]");
+
+    function switchLang(lang: string) {
+      tabs.forEach((tab) => tab.classList.toggle("is-active", (tab as HTMLElement).dataset.langTab === lang));
+      panels.forEach((panel) => panel.classList.toggle("is-active", (panel as HTMLElement).dataset.langPanel === lang));
+    }
+
+    tabs.forEach((tab) => tab.addEventListener("click", () => switchLang((tab as HTMLElement).dataset.langTab!)));
+  </script>
+</AdminLayout>

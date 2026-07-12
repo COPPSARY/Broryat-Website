@@ -1,0 +1,26 @@
+---
+import Sidebar from "../components/admin/Sidebar.astro";
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} | Broryat Admin</title>
+  </head>
+  <body class="admin-screen">
+    <Sidebar />
+    <main class="admin-shell">
+      <slot />
+    </main>
+  </body>
+</html>

@@ -1,51 +1,53 @@
 ---
-import { render, type CollectionEntry } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { SEO, SITE, UI, formatDate, type Locale } from "../data/site";
 import { localizePath } from "../data/site";
+import type { MarkdownTutorial, SiteArticle } from "../lib/content";
 
 interface Props {
   locale: Locale;
   collection: "articles" | "tutorials";
-  entry: CollectionEntry<"articles"> | CollectionEntry<"tutorials">;
+  entry: SiteArticle | MarkdownTutorial;
   alternateLocaleHref: string;
 }
 
 const { locale, collection, entry, alternateLocaleHref } = Astro.props;
 const ui = UI[locale];
-const { Content } = await render(entry);
+const isDbArticle = !("data" in entry);
+const Content = isDbArticle ? null : entry.Content;
 const isArticle = collection === "articles";
-const articleEntry = isArticle ? (entry as CollectionEntry<"articles">) : null;
-const tutorialEntry = isArticle ? null : (entry as CollectionEntry<"tutorials">);
+const articleEntry = isArticle ? (entry as SiteArticle) : null;
+const tutorialEntry = isArticle ? null : (entry as MarkdownTutorial);
+const data = isDbArticle ? entry : entry.data;
 
-const coverImageURL = new URL(entry.data.coverImage, Astro.site).href;
+const coverImageURL = new URL(data.coverImage, Astro.site).href;
 const pageURL = new URL(Astro.url.pathname, Astro.site).href;
 
 const structuredData = {
   "@type": isArticle ? "TechArticle" : "HowTo",
-  headline: entry.data.title,
-  name: entry.data.title,
-  description: entry.data.description,
+  headline: data.title,
+  name: data.title,
+  description: data.description,
   image: coverImageURL,
   inLanguage: SEO.ogLocale[locale],
   mainEntityOfPage: pageURL,
   author: { "@type": "Organization", name: "Sayana Studio" },
   publisher: { "@id": `${SEO.siteUrl}/#organization` },
   ...(articleEntry
-    ? { datePublished: articleEntry.data.date.toISOString() }
+    ? { datePublished: ("data" in articleEntry ? articleEntry.data.date : articleEntry.date).toISOString() }
     : {}),
 };
 ---
 
 <BaseLayout
   locale={locale}
-  title={`${entry.data.title} | ${SITE.name}`}
-  description={entry.data.description}
+  title={`${data.title} | ${SITE.name}`}
+  description={data.description}
   alternateLocaleHref={alternateLocaleHref}
   ogType="article"
-  ogImage={entry.data.coverImage}
-  publishedTime={articleEntry ? articleEntry.data.date.toISOString() : undefined}
-  section={articleEntry ? articleEntry.data.tag : ui.tutorialLabel}
+  ogImage={data.coverImage}
+  publishedTime={articleEntry ? ("data" in articleEntry ? articleEntry.data.date : articleEntry.date).toISOString() : undefined}
+  section={articleEntry ? ("data" in articleEntry ? articleEntry.data.tag : articleEntry.tag) : ui.tutorialLabel}
   structuredData={structuredData}
 >
   <main class="shell entry-page">
@@ -56,17 +58,17 @@ const structuredData = {
     <header class="entry-hero">
       <div class="entry-meta">
         <p class="eyebrow">
-          <span class="tag">{articleEntry ? articleEntry.data.tag : ui.tutorialLabel}</span>
+          <span class="tag">{articleEntry ? ("data" in articleEntry ? articleEntry.data.tag : articleEntry.tag) : ui.tutorialLabel}</span>
           {articleEntry && (
-            <time datetime={articleEntry.data.date.toISOString()}>
-              {formatDate(articleEntry.data.date, locale)}
+            <time datetime={("data" in articleEntry ? articleEntry.data.date : articleEntry.date).toISOString()}>
+              {formatDate("data" in articleEntry ? articleEntry.data.date : articleEntry.date, locale)}
             </time>
           )}
         </p>
-        <h1>{entry.data.title}</h1>
-        <p>{entry.data.description}</p>
+        <h1>{data.title}</h1>
+        <p>{data.description}</p>
       </div>
-      <img class="entry-cover" src={entry.data.coverImage} alt="" />
+      <img class="entry-cover" src={data.coverImage} alt="" />
     </header>
 
     {tutorialEntry && tutorialEntry.data.videoUrl && (
@@ -92,7 +94,7 @@ const structuredData = {
     )}
 
     <article class="prose">
-      <Content />
+      {isDbArticle ? <Fragment set:html={entry.bodyHtml} /> : Content && <Content />}
     </article>
   </main>
 </BaseLayout>

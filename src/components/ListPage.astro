@@ -3,12 +3,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import ArticleCard from "./ArticleCard.astro";
 import TutorialCard from "./TutorialCard.astro";
 import { SITE, UI, type Locale } from "../data/site";
-import type { CollectionEntry } from "astro:content";
+import type { MarkdownTutorial, SiteArticle } from "../lib/content";
 
 interface Props {
   locale: Locale;
   collection: "articles" | "tutorials";
-  entries: CollectionEntry<"articles">[] | CollectionEntry<"tutorials">[];
+  entries: SiteArticle[] | MarkdownTutorial[];
   alternateLocaleHref: string;
 }
 
@@ -17,8 +17,8 @@ const ui = UI[locale];
 const isArticles = collection === "articles";
 const title = isArticles ? ui.articles : ui.tutorials;
 const description = isArticles ? ui.latestArticlesIntro : ui.tutorialsIntro;
-const articleEntries = isArticles ? (entries as CollectionEntry<"articles">[]) : [];
-const tutorialEntries = isArticles ? [] : (entries as CollectionEntry<"tutorials">[]);
+const articleEntries = isArticles ? (entries as SiteArticle[]) : [];
+const tutorialEntries = isArticles ? [] : (entries as MarkdownTutorial[]);
 ---
 
 <BaseLayout

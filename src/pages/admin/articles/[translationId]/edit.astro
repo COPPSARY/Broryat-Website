@@ -1,0 +1,102 @@
+---
+import { requireAdmin } from "../../../../lib/server/auth";
+import { getDbArticlePair } from "../../../../lib/server/articles";
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import TiptapEditor from "../../../../components/admin/TiptapEditor.astro";
+
+export const prerender = false;
+
+const session = await requireAdmin(Astro);
+if (!session) {
+  return Astro.redirect("/admin/login/");
+}
+
+const translationId = Astro.params.translationId ?? "";
+const pair = await getDbArticlePair(translationId);
+
+if (!pair?.en && !pair?.kh) {
+  return Astro.redirect("/admin/");
+}
+
+const en = pair.en ?? pair.kh;
+const kh = pair.kh ?? pair.en;
+const primary = en ?? kh;
+---
+
+<AdminLayout title="Edit Article">
+  <header class="admin-topbar">
+    <div>
+      <p class="kicker">Articles</p>
+      <h1>Edit article</h1>
+    </div>
+    <nav class="admin-actions">
+      <a class="button ghost" href={`/articles/${translationId}/`}>View Khmer</a>
+      <a class="button ghost" href={`/en/articles/${translationId}/`}>View English</a>
+    </nav>
+  </header>
+
+  <form class="admin-panel admin-article-form" method="post" action="/api/admin/articles/" enctype="multipart/form-data">
+    <div class="admin-form-row">
+      <label>
+        <span>Translation ID / URL slug</span>
+        <input name="translationId" id="translationId" value={primary?.translationId} readonly required />
+      </label>
+      <label>
+        <span>Tag</span>
+        <input name="tag" value={primary?.tag} required />
+      </label>
+      <label>
+        <span>Status</span>
+        <select name="status">
+          <option value="draft" selected={primary?.status === "draft"}>Draft</option>
+          <option value="published" selected={primary?.status === "published"}>Published</option>
+        </select>
+      </label>
+    </div>
+
+    <label>
+      <span>Replace cover image</span>
+      <input name="cover" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+    </label>
+
+    {primary?.coverImage && (
+      <div class="admin-current-cover">
+        <span>Current cover</span>
+        <img src={primary.coverImage} alt="" />
+      </div>
+    )}
+
+    <div class="admin-language-tabs" role="tablist">
+      <button type="button" class="is-active" data-lang-tab="en">English</button>
+      <button type="button" data-lang-tab="kh">Khmer</button>
+    </div>
+
+    <section class="admin-lang-panel is-active" data-lang-panel="en">
+      <label><span>English title</span><input name="enTitle" id="enTitle" value={en?.title ?? ""} required /></label>
+      <label><span>English description</span><textarea name="enDescription" id="enDescription" rows="3" required>{en?.description ?? ""}</textarea></label>
+      <label><span>English body</span></label>
+      <TiptapEditor name="enBody" id="enBody" content={en?.bodyHtml ?? ""} required={true} />
+    </section>
+
+    <section class="admin-lang-panel" data-lang-panel="kh">
+      <label><span>Khmer title</span><input name="khTitle" id="khTitle" value={kh?.title ?? ""} required /></label>
+      <label><span>Khmer description</span><textarea name="khDescription" id="khDescription" rows="3" required>{kh?.description ?? ""}</textarea></label>
+      <label><span>Khmer body</span></label>
+      <TiptapEditor name="khBody" id="khBody" content={kh?.bodyHtml ?? ""} required={true} />
+    </section>
+
+    <button class="button primary" type="submit">Save changes</button>
+  </form>
+
+  <script>
+    const panels = document.querySelectorAll("[data-lang-panel]");
+    const tabs = document.querySelectorAll("[data-lang-tab]");
+
+    function switchLang(lang: string) {
+      tabs.forEach((tab) => tab.classList.toggle("is-active", (tab as HTMLElement).dataset.langTab === lang));
+      panels.forEach((panel) => panel.classList.toggle("is-active", (panel as HTMLElement).dataset.langPanel === lang));
+    }
+
+    tabs.forEach((tab) => tab.addEventListener("click", () => switchLang((tab as HTMLElement).dataset.langTab!)));
+  </script>
+</AdminLayout>

@@ -1,16 +1,14 @@
 ---
 import EntryPage from "../../components/EntryPage.astro";
-import { getLocalizedCollection } from "../../lib/content";
+import { getTutorial } from "../../lib/content";
 
-export async function getStaticPaths() {
-  const entries = await getLocalizedCollection("tutorials", "kh");
-  return entries.map((entry) => ({
-    params: { slug: entry.data.translationId },
-    props: { entry },
-  }));
+export const prerender = false;
+
+const entry = await getTutorial("kh", Astro.params.slug ?? "");
+
+if (!entry) {
+  return Astro.redirect("/tutorials/");
 }
-
-const { entry } = Astro.props;
 ---
 
 <EntryPage

@@ -1,9 +1,9 @@
 ---
 import ListPage from "../../../components/ListPage.astro";
-import { getLocalizedCollection } from "../../../lib/content";
+import { getLocalizedArticles } from "../../../lib/content";
 
 const locale = "en";
-const entries = await getLocalizedCollection("articles", locale);
+const entries = await getLocalizedArticles(locale);
 ---
 
 <ListPage locale={locale} collection="articles" entries={entries} alternateLocaleHref="/articles/" />

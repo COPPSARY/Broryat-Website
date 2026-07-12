@@ -1,0 +1,124 @@
+---
+import { requireAdmin } from "../../lib/server/auth";
+import { getDashboardStats } from "../../lib/server/dashboard";
+import { getDbArticles } from "../../lib/server/articles";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+
+export const prerender = false;
+
+const session = await requireAdmin(Astro);
+if (!session) {
+  return Astro.redirect("/admin/login/");
+}
+
+let stats = { scans: 0, users: 0, urlReports: 0, userPreferences: 0, groups: 0, articles: 0, recentScans: [] as any[], groupsList: [] as any[] };
+let enArticles: any[] = [];
+let khArticles: any[] = [];
+
+try {
+  const loaded = await Promise.all([
+    getDashboardStats(),
+    getDbArticles("en", true),
+    getDbArticles("kh", true),
+  ]);
+  stats = loaded[0];
+  enArticles = loaded[1];
+  khArticles = loaded[2];
+} catch (err) {
+  console.error("Dashboard data loading failed:", err);
+}
+---
+
+<AdminLayout title="Dashboard">
+  <header class="admin-topbar">
+    <div>
+      <p class="kicker">Overview</p>
+      <h1>Dashboard</h1>
+    </div>
+  </header>
+
+  <section class="admin-stat-grid">
+    <article><span>Scans</span><strong>{stats.scans}</strong></article>
+    <article><span>Users scanned</span><strong>{stats.users}</strong></article>
+    <article><span>User preferences</span><strong>{stats.userPreferences}</strong></article>
+    <article><span>URL reports</span><strong>{stats.urlReports}</strong></article>
+    <article><span>Groups</span><strong>{stats.groups}</strong></article>
+    <article><span>DB articles</span><strong>{stats.articles}</strong></article>
+  </section>
+
+  <section class="admin-grid-two">
+    <div class="admin-panel">
+      <h2>Recent scans</h2>
+      <div class="admin-table-wrap">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>User</th><th>Type</th><th>Risk</th><th>Domain</th></tr>
+          </thead>
+          <tbody>
+            {stats.recentScans.map((scan) => (
+              <tr>
+                <td>{scan.created_at.toLocaleString()}</td>
+                <td>{scan.user_id}</td>
+                <td>{scan.input_type}</td>
+                <td>{scan.final_risk_level}</td>
+                <td>{scan.domain ?? "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {stats.recentScans.length >= 5 && (
+        <div class="admin-load-more">
+          <button type="button" data-load-more="scans">Load more</button>
+        </div>
+      )}
+    </div>
+
+    <div class="admin-panel">
+      <h2>Groups</h2>
+      <div class="admin-table-wrap">
+        <table>
+          <thead>
+            <tr><th>Group</th><th>Language</th><th>Updated</th></tr>
+          </thead>
+          <tbody>
+            {stats.groupsList.map((group) => (
+              <tr>
+                <td>{group.group_name ?? group.chat_id}</td>
+                <td>{group.language ?? "-"}</td>
+                <td>{group.updated_at.toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {stats.groupsList.length >= 5 && (
+        <div class="admin-load-more">
+          <button type="button" data-load-more="groups">Load more</button>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section class="admin-panel">
+    <h2>Database articles</h2>
+    <div class="admin-table-wrap">
+      <table>
+        <thead>
+          <tr><th>Language</th><th>Title</th><th>Status</th><th>Published</th><th></th></tr>
+        </thead>
+        <tbody>
+          {[...enArticles, ...khArticles].map((article) => (
+            <tr>
+              <td>{article.lang}</td>
+              <td>{article.title}</td>
+              <td>{article.status}</td>
+              <td>{article.date.toLocaleString()}</td>
+              <td><a class="inline-link" href={`/admin/articles/${article.translationId}/edit/`}>Edit</a></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</AdminLayout>
