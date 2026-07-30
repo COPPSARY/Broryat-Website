@@ -834,6 +834,15 @@ h4 {
   object-fit: contain;
 }
 
+.article-page .entry-hero h1 {
+  font-size: clamp(1.85rem, 4vw, 3rem);
+}
+
+.article-page .prose p,
+.article-page .prose li {
+  max-width: none;
+}
+
 .video-placeholder {
   display: grid;
   gap: 0.75rem;
