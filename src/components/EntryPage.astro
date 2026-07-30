@@ -50,7 +50,7 @@ const structuredData = {
   section={articleEntry ? ("data" in articleEntry ? articleEntry.data.tag : articleEntry.tag) : ui.tutorialLabel}
   structuredData={structuredData}
 >
-  <main class="shell entry-page">
+  <main class:list={["shell", "entry-page", { "article-page": isArticle }]}>
     <a class="back-link" href={localizePath(locale, collection)}>
       {isArticle ? ui.backToArticles : ui.backToTutorials}
     </a>

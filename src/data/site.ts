@@ -280,7 +280,7 @@ export const UI = {
     homePageTitle: "Broryat | AI bot that helps protect you from online scams",
     homePageDescription:
       "Broryat is a Cambodian anti-scam platform with an AI Telegram bot for reviewing suspicious links, messages, and files before people open or forward them.",
-    heroTitle: "Becareful of Scammers on Telegram!",
+    heroTitle: "Be careful of Scammers on Telegram!",
     heroBody:
       "Broryat is an AI bot that helps protect people from online scams. Send the bot a suspicious link, message, or file to analyze the risk and get immediate guidance.",
     heroChannelLabel: "Telegram Channel",
