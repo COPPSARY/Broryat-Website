@@ -4,6 +4,7 @@ import {
   BookOpen,
   ListOrdered,
   MessageSquare,
+  MessageSquareLock,
   Newspaper,
   ScanSearch,
   ShieldCheck,
@@ -40,8 +41,8 @@ const ctaTitle = editableSettings.ctaTitle || ui.ctaTitle;
 const ctaBody = editableSettings.ctaBody || ui.ctaBody;
 
 // Icons paired to each feature by order:
-// 1) AI intent analysis  2) Link & file scanning  3) Group chat protection
-const featureIcons = [Sparkles, ScanSearch, UsersRound];
+// 1) AI intent analysis  2) Link & file scanning  3) Group chat protection  4) Chat Automation
+const featureIcons = [Sparkles, ScanSearch, UsersRound, MessageSquareLock];
 
 const twoStepGuide = await getTranslatedEntry(
   "articles",

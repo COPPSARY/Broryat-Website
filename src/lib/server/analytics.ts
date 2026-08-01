@@ -120,26 +120,33 @@ export async function getTelegramUsage(days = 7, range?: DateRange) {
     { messages: 0, files: 0, urls: 0, forwarded: 0, activeGroups: 0, total: 0 },
     async () => {
       const { from, to } = windowBounds(days, range);
-      const rows = await db()<{ input_type: string; count: string }[]>`
-        select input_type, count(*) as count
+      const rows = await db()<{
+        messages: string;
+        files: string;
+        urls: string;
+        forwarded: string;
+        active_groups: string;
+        total: string;
+      }[]>`
+        select
+          count(*) filter (where input_type = 'text') as messages,
+          count(*) filter (where input_type = 'file') as files,
+          count(*) filter (where input_type = 'url') as urls,
+          count(*) filter (where input_type = 'forwarded') as forwarded,
+          count(distinct chat_id) filter (where chat_type = 'group') as active_groups,
+          count(*) as total
         from scan_records
         where created_at >= ${from} and created_at <= ${to}
-        group by 1
-      `;
-      const activeGroupsRows = await db()<{ count: string }[]>`
-        select count(distinct chat_id) as count
-        from scan_records
-        where created_at >= ${from} and created_at <= ${to} and chat_type = 'group'
       `;
 
-      const byType = (type: string) => Number(rows.find((r) => r.input_type === type)?.count ?? 0);
+      const r = rows[0];
       return {
-        messages: byType("text"),
-        files: byType("file"),
-        urls: byType("url"),
-        forwarded: byType("forwarded"),
-        activeGroups: Number(activeGroupsRows[0]?.count ?? 0),
-        total: rows.reduce((sum, r) => sum + Number(r.count), 0),
+        messages: Number(r?.messages ?? 0),
+        files: Number(r?.files ?? 0),
+        urls: Number(r?.urls ?? 0),
+        forwarded: Number(r?.forwarded ?? 0),
+        activeGroups: Number(r?.active_groups ?? 0),
+        total: Number(r?.total ?? 0),
       };
     },
   );
@@ -188,70 +195,81 @@ export async function getUserBehavior(days = 30, range?: DateRange) {
 
   return guarded("scan_records", fallback, async () => {
     const { from, to } = windowBounds(days, range);
+    const priorFrom7 = new Date(from.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const priorFrom30 = new Date(from.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const newUsersRows = await db()<{ count: string }[]>`
-      with first_seen as (
+    const rows = await db()<{
+      new_users: string;
+      activity: { active_days: string; scans: string }[];
+      top_users: { user_id: string; username: string | null; first_name: string | null; scans: string; last_active: string }[];
+      top_groups: { chat_id: string; group_name: string | null; scans: string; last_active: string }[];
+      prior7_count: string;
+      returned7_count: string;
+      prior30_count: string;
+      returned30_count: string;
+    }[]>`
+      with window_scans as (
+        select * from scan_records where created_at >= ${from} and created_at <= ${to}
+      ),
+      first_seen as (
         select user_id, min(created_at) as first_at from scan_records group by user_id
+      ),
+      activity as (
+        select user_id, count(distinct date_trunc('day', created_at)) as active_days, count(*) as scans
+        from window_scans group by user_id
+      ),
+      top_users as (
+        select ws.user_id::text as user_id, up.username, up.first_name, count(*) as scans, max(ws.created_at) as last_active
+        from window_scans ws
+        left join user_preferences up on up.user_id = ws.user_id
+        group by 1, 2, 3
+        order by scans desc
+        limit 10
+      ),
+      top_groups as (
+        select ws.chat_id::text as chat_id, gp.group_name, count(*) as scans, max(ws.created_at) as last_active
+        from window_scans ws
+        left join group_preferences gp on gp.chat_id = ws.chat_id
+        where ws.chat_type = 'group'
+        group by 1, 2
+        order by scans desc
+        limit 10
+      ),
+      prior7 as (select distinct user_id from scan_records where created_at >= ${priorFrom7} and created_at < ${from}),
+      returned7 as (
+        select distinct user_id from window_scans where user_id in (select user_id from prior7)
+      ),
+      prior30 as (select distinct user_id from scan_records where created_at >= ${priorFrom30} and created_at < ${from}),
+      returned30 as (
+        select distinct user_id from window_scans where user_id in (select user_id from prior30)
       )
-      select count(*) as count from first_seen where first_at >= ${from} and first_at <= ${to}
+      select
+        (select count(*) from first_seen where first_at >= ${from} and first_at <= ${to}) as new_users,
+        (select coalesce(jsonb_agg(jsonb_build_object('active_days', active_days, 'scans', scans)), '[]'::jsonb) from activity) as activity,
+        (select coalesce(jsonb_agg(top_users), '[]'::jsonb) from top_users) as top_users,
+        (select coalesce(jsonb_agg(top_groups), '[]'::jsonb) from top_groups) as top_groups,
+        (select count(*) from prior7) as prior7_count,
+        (select count(*) from returned7) as returned7_count,
+        (select count(*) from prior30) as prior30_count,
+        (select count(*) from returned30) as returned30_count
     `;
 
-    const activityRows = await db()<{ user_id: string; active_days: string; scans: string }[]>`
-      select user_id::text, count(distinct date_trunc('day', created_at)) as active_days, count(*) as scans
-      from scan_records
-      where created_at >= ${from} and created_at <= ${to}
-      group by 1
-    `;
+    const r = rows[0];
+    const activity = r?.activity ?? [];
+    const topUsers = r?.top_users ?? [];
+    const topGroups = r?.top_groups ?? [];
 
-    const returningUsers = activityRows.filter((r) => Number(r.active_days) > 1).length;
-    const totalScansInRange = activityRows.reduce((sum, r) => sum + Number(r.scans), 0);
-    const avgScansPerUser = activityRows.length > 0 ? totalScansInRange / activityRows.length : 0;
+    const returningUsers = activity.filter((a) => Number(a.active_days) > 1).length;
+    const totalScansInRange = activity.reduce((sum, a) => sum + Number(a.scans), 0);
+    const avgScansPerUser = activity.length > 0 ? totalScansInRange / activity.length : 0;
 
-    async function retentionFor(windowMs: number) {
-      const priorFrom = new Date(from.getTime() - windowMs);
-      const priorTo = from;
-      const [priorUsers, returned] = await Promise.all([
-        db()<{ user_id: string }[]>`
-          select distinct user_id::text from scan_records where created_at >= ${priorFrom} and created_at < ${priorTo}
-        `,
-        db()<{ user_id: string }[]>`
-          select distinct user_id::text from scan_records
-          where created_at >= ${from} and created_at <= ${to}
-            and user_id in (
-              select distinct user_id from scan_records where created_at >= ${priorFrom} and created_at < ${priorTo}
-            )
-        `,
-      ]);
-      return priorUsers.length > 0 ? (returned.length / priorUsers.length) * 100 : 0;
-    }
-
-    const [retention7d, retention30d] = await Promise.all([
-      retentionFor(7 * 24 * 60 * 60 * 1000),
-      retentionFor(30 * 24 * 60 * 60 * 1000),
-    ]);
-
-    const topUsers = await db()<{ user_id: string; username: string | null; first_name: string | null; scans: string; last_active: Date }[]>`
-      select sr.user_id::text, up.username, up.first_name, count(*) as scans, max(sr.created_at) as last_active
-      from scan_records sr
-      left join user_preferences up on up.user_id = sr.user_id
-      where sr.created_at >= ${from} and sr.created_at <= ${to}
-      group by 1, 2, 3
-      order by scans desc
-      limit 10
-    `;
-
-    const topGroups = await db()<{ chat_id: string; group_name: string | null; scans: string; last_active: Date }[]>`
-      select sr.chat_id::text, gp.group_name, count(*) as scans, max(sr.created_at) as last_active
-      from scan_records sr
-      left join group_preferences gp on gp.chat_id = sr.chat_id
-      where sr.created_at >= ${from} and sr.created_at <= ${to} and sr.chat_type = 'group'
-      group by 1, 2
-      order by scans desc
-      limit 10
-    `;
+    const prior7Count = Number(r?.prior7_count ?? 0);
+    const prior30Count = Number(r?.prior30_count ?? 0);
+    const retention7d = prior7Count > 0 ? (Number(r?.returned7_count ?? 0) / prior7Count) * 100 : 0;
+    const retention30d = prior30Count > 0 ? (Number(r?.returned30_count ?? 0) / prior30Count) * 100 : 0;
 
     return {
-      newUsers: Number(newUsersRows[0]?.count ?? 0),
+      newUsers: Number(r?.new_users ?? 0),
       returningUsers,
       avgScansPerUser: Math.round(avgScansPerUser * 10) / 10,
       retention7d: Math.round(retention7d * 10) / 10,
@@ -260,13 +278,13 @@ export async function getUserBehavior(days = 30, range?: DateRange) {
         userId: u.user_id,
         username: u.username ?? u.first_name,
         scans: Number(u.scans),
-        lastActive: u.last_active,
+        lastActive: new Date(u.last_active),
       })),
       topGroups: topGroups.map((g) => ({
         chatId: g.chat_id,
         groupName: g.group_name,
         scans: Number(g.scans),
-        lastActive: g.last_active,
+        lastActive: new Date(g.last_active),
       })),
     };
   });
@@ -283,54 +301,65 @@ export async function getSecurityInsights(days = 30, range?: DateRange) {
   return guarded("scan_records", fallback, async () => {
     const { from, to } = windowBounds(days, range);
 
-    const topDomains = await db()<{ domain: string; count: string }[]>`
-      select domain, count(*) as count
-      from scan_records
-      where created_at >= ${from} and created_at <= ${to}
-        and final_risk_level in ('MEDIUM', 'HIGH') and domain is not null
-      group by 1
-      order by 2 desc
-      limit 10
-    `;
-
-    const topHashes = await db()<{ sha256: string; file_name: string | null; count: string }[]>`
-      select sha256, max(file_name) as file_name, count(*) as count
-      from scan_records
-      where created_at >= ${from} and created_at <= ${to}
-        and input_type = 'file' and final_risk_level in ('MEDIUM', 'HIGH') and sha256 is not null
-      group by 1
-      order by 3 desc
-      limit 10
-    `;
-
     const now = to;
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-    const trendRows = await db()<{ domain: string; this_week: string; last_week: string }[]>`
-      select domain,
-        count(*) filter (where created_at >= ${weekAgo}) as this_week,
-        count(*) filter (where created_at >= ${twoWeeksAgo} and created_at < ${weekAgo}) as last_week
-      from scan_records
-      where created_at >= ${twoWeeksAgo} and created_at <= ${now}
-        and final_risk_level in ('MEDIUM', 'HIGH') and domain is not null
-      group by 1
-      having count(*) filter (where created_at >= ${weekAgo}) > count(*) filter (where created_at >= ${twoWeeksAgo} and created_at < ${weekAgo})
-      order by 2 desc
-      limit 10
+    const rows = await db()<{
+      domains: { domain: string; count: string }[];
+      hashes: { sha256: string; file_name: string | null; count: string }[];
+      trend: { domain: string; this_week: string; last_week: string }[];
+      labels: (string[] | null)[];
+    }[]>`
+      with base as (
+        select * from scan_records where created_at >= ${from} and created_at <= ${to}
+      ),
+      domains as (
+        select domain, count(*) as count from base
+        where final_risk_level in ('MEDIUM', 'HIGH') and domain is not null
+        group by 1
+        order by 2 desc
+        limit 10
+      ),
+      hashes as (
+        select sha256, max(file_name) as file_name, count(*) as count from base
+        where input_type = 'file' and final_risk_level in ('MEDIUM', 'HIGH') and sha256 is not null
+        group by 1
+        order by 3 desc
+        limit 10
+      ),
+      trend as (
+        select domain,
+          count(*) filter (where created_at >= ${weekAgo}) as this_week,
+          count(*) filter (where created_at >= ${twoWeeksAgo} and created_at < ${weekAgo}) as last_week
+        from base
+        where created_at >= ${twoWeeksAgo}
+          and final_risk_level in ('MEDIUM', 'HIGH') and domain is not null
+        group by 1
+        having count(*) filter (where created_at >= ${weekAgo}) > count(*) filter (where created_at >= ${twoWeeksAgo} and created_at < ${weekAgo})
+        order by 2 desc
+        limit 10
+      ),
+      labels as (
+        select vt_detection_names from base
+        where final_risk_level in ('MEDIUM', 'HIGH') and vt_detection_names is not null
+      )
+      select
+        (select coalesce(jsonb_agg(domains), '[]'::jsonb) from domains) as domains,
+        (select coalesce(jsonb_agg(hashes), '[]'::jsonb) from hashes) as hashes,
+        (select coalesce(jsonb_agg(trend), '[]'::jsonb) from trend) as trend,
+        (select coalesce(jsonb_agg(vt_detection_names), '[]'::jsonb) from labels) as labels
     `;
 
-    const labelRows = await db()<{ vt_detection_names: string[] | null }[]>`
-      select vt_detection_names
-      from scan_records
-      where created_at >= ${from} and created_at <= ${to}
-        and final_risk_level in ('MEDIUM', 'HIGH') and vt_detection_names is not null
-    `;
+    const r = rows[0];
+    const topDomains = r?.domains ?? [];
+    const topHashes = r?.hashes ?? [];
+    const trendRows = r?.trend ?? [];
+    const labelRows = r?.labels ?? [];
 
     const keywordCounts = new Map<string, number>();
-    for (const row of labelRows) {
-      const labels = Array.isArray(row.vt_detection_names) ? row.vt_detection_names : [];
-      for (const label of labels) {
+    for (const labels of labelRows) {
+      for (const label of Array.isArray(labels) ? labels : []) {
         const tokens = label.toLowerCase().match(/[a-z]{4,}/g) ?? [];
         for (const token of new Set(tokens)) {
           if (["with", "generic", "score", "many"].includes(token)) continue;
@@ -358,36 +387,66 @@ export async function getAiInsightsSummary(days = 7) {
   }
 
   const { from, to } = windowBounds(days);
-  const [totals, categories, hours, agreement] = await Promise.all([
-    db()<{ total: string; safe: string }[]>`
-      select count(*) as total, count(*) filter (where final_risk_level = 'SAFE') as safe
-      from scan_records where created_at >= ${from} and created_at <= ${to}
-    `,
-    getThreatCategories(days),
-    getActiveHours(days),
-    db()<{ comparable: string; agree: string }[]>`
-      select
-        count(*) filter (where ai_risk_level is not null and final_risk_level is not null) as comparable,
-        count(*) filter (where upper(ai_risk_level) = upper(final_risk_level)) as agree
-      from scan_records where created_at >= ${from} and created_at <= ${to}
-    `,
-  ]);
+  const rows = await db()<{
+    total: string;
+    safe: string;
+    comparable: string;
+    agree: string;
+    hours: { hour: number; count: string }[];
+    labels: (string[] | null)[];
+  }[]>`
+    with base as (
+      select * from scan_records where created_at >= ${from} and created_at <= ${to}
+    ),
+    hours as (
+      select extract(hour from created_at)::int as hour, count(*) as count from base group by 1
+    ),
+    labels as (
+      select vt_detection_names from base
+      where final_risk_level in ('MEDIUM', 'HIGH') and vt_detection_names is not null
+    )
+    select
+      count(*) as total,
+      count(*) filter (where final_risk_level = 'SAFE') as safe,
+      count(*) filter (where ai_risk_level is not null and final_risk_level is not null) as comparable,
+      count(*) filter (where upper(ai_risk_level) = upper(final_risk_level)) as agree,
+      (select coalesce(jsonb_agg(hours), '[]'::jsonb) from hours) as hours,
+      (select coalesce(jsonb_agg(vt_detection_names), '[]'::jsonb) from labels) as labels
+    from base
+  `;
 
-  const total = Number(totals[0]?.total ?? 0);
+  const r = rows[0];
+  const total = Number(r?.total ?? 0);
   if (total === 0) {
     return `No submissions were analyzed in the last ${days} days.`;
   }
 
-  const safe = Number(totals[0]?.safe ?? 0);
+  const safe = Number(r?.safe ?? 0);
   const safePct = Math.round((safe / total) * 100);
-  const topThreat = categories.labels[0] ?? "no significant threats";
 
-  const peakHourIndex = hours.data.indexOf(Math.max(...hours.data));
-  const peakHour = peakHourIndex >= 0 ? Number(hours.labels[peakHourIndex]?.slice(0, 2) ?? 0) : null;
+  const categoryCounts = new Map<string, number>();
+  for (const labels of r?.labels ?? []) {
+    const categories = new Set((Array.isArray(labels) ? labels : []).map(classifyDetectionLabel));
+    const applied = categories.size > 0 ? categories : new Set(["Unknown"]);
+    for (const category of applied) {
+      categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
+    }
+  }
+  const topThreat = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "no significant threats";
+
+  const hourCounts = new Map((r?.hours ?? []).map((h) => [h.hour, Number(h.count)]));
+  let peakHour: number | null = null;
+  let peakCount = -1;
+  for (const [hour, count] of hourCounts) {
+    if (count > peakCount) {
+      peakCount = count;
+      peakHour = hour;
+    }
+  }
   const peakPeriod = peakHour === null ? "throughout the day" : peakHour < 12 ? "in the morning" : peakHour < 18 ? "in the afternoon" : "in the evening";
 
-  const comparable = Number(agreement[0]?.comparable ?? 0);
-  const agree = Number(agreement[0]?.agree ?? 0);
+  const comparable = Number(r?.comparable ?? 0);
+  const agree = Number(r?.agree ?? 0);
   const agreementPct = comparable > 0 ? Math.round((agree / comparable) * 100) : null;
 
   const parts = [

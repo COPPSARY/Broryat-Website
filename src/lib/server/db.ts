@@ -23,14 +23,20 @@ export function db() {
   return client;
 }
 
+const tableExistsCache = new Map<string, Promise<boolean>>();
+
 export async function tableExists(tableName: string) {
   if (!/^[a-z_][a-z0-9_]*$/i.test(tableName) || !hasDatabaseUrl()) {
     return false;
   }
 
-  const rows = await db()<{ exists: boolean }[]>`
-    select to_regclass(${`public.${tableName}`}) is not null as exists
-  `;
+  let cached = tableExistsCache.get(tableName);
+  if (!cached) {
+    cached = db()<{ exists: boolean }[]>`
+      select to_regclass(${`public.${tableName}`}) is not null as exists
+    `.then((rows) => rows[0]?.exists ?? false);
+    tableExistsCache.set(tableName, cached);
+  }
 
-  return rows[0]?.exists ?? false;
+  return cached;
 }
