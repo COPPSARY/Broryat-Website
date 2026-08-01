@@ -539,7 +539,7 @@ h4 {
 
 .feature-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
   margin-top: 2.5rem;
   border-top: 1px solid var(--rule);
@@ -550,8 +550,9 @@ h4 {
   grid-template-rows: auto 1fr;
   row-gap: 0.7rem;
   align-content: start;
-  padding: 1.5rem 1.5rem 1.5rem 0;
+  padding: 1.5rem;
   border-right: 1px solid var(--soft-rule);
+  border-bottom: 1px solid var(--soft-rule);
 }
 
 .feature-head {
@@ -574,14 +575,18 @@ h4 {
   height: 1.5rem;
 }
 
-.feature-item:nth-child(2) {
-  padding-left: 1.5rem;
+.feature-item:nth-child(2n+1) {
+  padding-left: 0;
 }
 
-.feature-item:last-child {
+.feature-item:nth-child(2n) {
   padding-right: 0;
-  padding-left: 1.5rem;
   border-right: 0;
+}
+
+.feature-item:nth-last-child(-n+2) {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .feature-item h3,

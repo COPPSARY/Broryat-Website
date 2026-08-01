@@ -90,6 +90,11 @@ export const HOME_FEATURES = {
       description:
         "គ្រាន់តែទាញ Bot ចូលទៅក្នុងគ្រុប សមាជិកទាំងអស់នឹងមានកន្លែងសុវត្ថិភាពមួយសម្រាប់ផ្ទៀងផ្ទាត់រាល់មាតិកាសង្ស័យ មុននឹងសម្រេចចិត្តចុចបើក។",
     },
+    {
+      title: "ប្រព័ន្ធការពារសម្រាប់ជជែកឯកជន",
+      description:
+        "ភ្ជាប់ Broryat តាមរយៈ Telegram Chat Automation ដើម្បីត្រួតពិនិត្យតំណភ្ជាប់ និងឯកសារដែលផ្ញើមកកាន់ជជែកឯកជនរបស់អ្នកជាមួយ VirusTotal ដោយស្វ័យប្រវត្តិ ខណៈសារធម្មតារក្សាដដែល ហើយមានតែអ្នកទេដែលសម្រេចចិត្តលុប។",
+    },
   ],
   en: [
     {
@@ -106,6 +111,11 @@ export const HOME_FEATURES = {
       title: "Group chat protection",
       description:
         "Add the bot to a group so members have one place to review suspicious content before anyone opens it.",
+    },
+    {
+      title: "Private Chat Protection",
+      description:
+        "Add Broryat via Telegram Chat Automation to scan incoming links and files in your private chats against VirusTotal, leaving ordinary messages untouched. Only you decide whether to delete a confirmed threat.",
     },
   ],
 } as const;
