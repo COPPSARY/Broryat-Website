@@ -1,0 +1,42 @@
+---
+interface Props {
+  id: string;
+  type: "bar" | "line" | "pie" | "doughnut";
+  data: unknown;
+  options?: unknown;
+  height?: string;
+}
+
+const { id, type, data, options = {}, height = "18rem" } = Astro.props;
+---
+
+<div class="admin-chart" style={`--chart-height: ${height}`}>
+  <canvas
+    id={id}
+    data-chart-type={type}
+    data-chart-data={JSON.stringify(data)}
+    data-chart-options={JSON.stringify(options)}
+  ></canvas>
+</div>
+
+<script>
+  import Chart from "chart.js/auto";
+
+  function initCharts() {
+    document.querySelectorAll<HTMLCanvasElement>("canvas[data-chart-type]:not([data-chart-initialized])").forEach((canvas) => {
+      const type = canvas.dataset.chartType as "bar" | "line" | "pie" | "doughnut";
+      const data = JSON.parse(canvas.dataset.chartData || "{}");
+      const options = JSON.parse(canvas.dataset.chartOptions || "{}");
+
+      new Chart(canvas, {
+        type,
+        data,
+        options: { responsive: true, maintainAspectRatio: false, ...options },
+      });
+
+      canvas.dataset.chartInitialized = "true";
+    });
+  }
+
+  initCharts();
+</script>

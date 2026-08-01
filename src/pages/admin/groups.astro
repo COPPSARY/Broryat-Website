@@ -1,0 +1,117 @@
+---
+import { requireAdmin } from "../../lib/server/auth";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import { getGroupProtectionStats, getDistinctGroupLanguages } from "../../lib/server/groups";
+
+export const prerender = false;
+
+const session = await requireAdmin(Astro);
+if (!session) {
+  return Astro.redirect("/admin/login/");
+}
+
+const params = Astro.url.searchParams;
+const fromParam = params.get("from");
+const toParam = params.get("to");
+const riskLevel = params.get("risk") || undefined;
+const language = params.get("language") || undefined;
+const groupSearch = params.get("group") || undefined;
+
+let groups: Awaited<ReturnType<typeof getGroupProtectionStats>> = [];
+let languages: string[] = [];
+
+try {
+  [groups, languages] = await Promise.all([
+    getGroupProtectionStats({
+      from: fromParam ? new Date(fromParam) : undefined,
+      to: toParam ? new Date(toParam) : undefined,
+      riskLevel,
+      language,
+      groupSearch,
+    }),
+    getDistinctGroupLanguages(),
+  ]);
+} catch (err) {
+  console.error("Group protection data loading failed:", err);
+}
+---
+
+<AdminLayout title="Group protection">
+  <header class="admin-topbar">
+    <div>
+      <p class="kicker">Overview</p>
+      <h1>Group protection</h1>
+    </div>
+  </header>
+
+  <section class="admin-panel">
+    <form class="admin-filter-bar" method="get">
+      <label>
+        <span>From</span>
+        <input type="date" name="from" value={fromParam ?? ""} />
+      </label>
+      <label>
+        <span>To</span>
+        <input type="date" name="to" value={toParam ?? ""} />
+      </label>
+      <label>
+        <span>Risk level</span>
+        <select name="risk">
+          <option value="" selected={!riskLevel}>All</option>
+          <option value="SAFE" selected={riskLevel === "SAFE"}>Safe</option>
+          <option value="LOW" selected={riskLevel === "LOW"}>Low</option>
+          <option value="MEDIUM" selected={riskLevel === "MEDIUM"}>Medium</option>
+          <option value="HIGH" selected={riskLevel === "HIGH"}>High</option>
+        </select>
+      </label>
+      <label>
+        <span>Language</span>
+        <select name="language">
+          <option value="" selected={!language}>All</option>
+          {languages.map((lang) => (
+            <option value={lang} selected={language === lang}>{lang}</option>
+          ))}
+        </select>
+      </label>
+      <label>
+        <span>Group</span>
+        <input type="text" name="group" placeholder="Search by name" value={groupSearch ?? ""} />
+      </label>
+      <button type="submit">Apply filters</button>
+    </form>
+  </section>
+
+  <section class="admin-panel">
+    <h2>Groups ({groups.length})</h2>
+    <div class="admin-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Group</th>
+            <th>Language</th>
+            <th>Messages analyzed</th>
+            <th>Malicious detected</th>
+            <th>Threat rate</th>
+            <th>Active members</th>
+            <th>Last activity</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {groups.map((g) => (
+            <tr>
+              <td>{g.groupName ?? g.chatId}</td>
+              <td>{g.language ?? "-"}</td>
+              <td>{g.messagesAnalyzed}</td>
+              <td>{g.maliciousDetected}</td>
+              <td>{g.threatRate}%</td>
+              <td>{g.activeMembers}</td>
+              <td>{g.lastActivity ? g.lastActivity.toLocaleString() : "-"}</td>
+              <td><span class="admin-badge" data-status={g.status}>{g.status}</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</AdminLayout>

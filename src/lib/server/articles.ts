@@ -173,6 +173,15 @@ export async function saveArticlePair(input: ArticleFormInput, authorEmail: stri
   const slug = slugify(input.slug) || translationId;
   const publishedAt = input.status === "published" ? new Date() : null;
 
+  // The DB has a check constraint requiring a cover on every row, validated against the raw
+  // insert candidate before ON CONFLICT's coalesce fallback ever runs. Editing an existing
+  // article without re-uploading a cover would otherwise fail that check, so resolve the
+  // existing cover up front and carry it forward.
+  const existingCover = await sql<{ cover_image_url: string | null }[]>`
+    select cover_image_url from articles where translation_id = ${translationId} limit 1
+  `;
+  const coverImageUrl = input.coverImageUrl || existingCover[0]?.cover_image_url || null;
+
   for (const lang of ["en", "kh"] as const) {
     const localized = input[lang];
     const isHtml = localized.bodyHtml.startsWith("<");
@@ -186,7 +195,7 @@ export async function saveArticlePair(input: ArticleFormInput, authorEmail: stri
       )
       values (
         ${translationId}, ${slug}, ${lang}, ${localized.title}, ${localized.description},
-        ${input.tag}, ${input.coverImageUrl || null}, ${bodyMarkdown}, ${bodyHtml},
+        ${input.tag}, ${coverImageUrl}, ${bodyMarkdown}, ${bodyHtml},
         ${input.status}, ${publishedAt}, ${authorEmail}
       )
       on conflict (lang, translation_id)

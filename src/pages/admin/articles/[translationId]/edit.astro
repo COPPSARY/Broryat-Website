@@ -75,14 +75,14 @@ const primary = en ?? kh;
       <label><span>English title</span><input name="enTitle" id="enTitle" value={en?.title ?? ""} required /></label>
       <label><span>English description</span><textarea name="enDescription" id="enDescription" rows="3" required>{en?.description ?? ""}</textarea></label>
       <label><span>English body</span></label>
-      <TiptapEditor name="enBody" id="enBody" content={en?.bodyHtml ?? ""} required={true} />
+      <TiptapEditor name="enBody" id="enBody" content={en?.bodyMarkdown || en?.bodyHtml || ""} required={true} />
     </section>
 
     <section class="admin-lang-panel" data-lang-panel="kh">
       <label><span>Khmer title</span><input name="khTitle" id="khTitle" value={kh?.title ?? ""} required /></label>
       <label><span>Khmer description</span><textarea name="khDescription" id="khDescription" rows="3" required>{kh?.description ?? ""}</textarea></label>
       <label><span>Khmer body</span></label>
-      <TiptapEditor name="khBody" id="khBody" content={kh?.bodyHtml ?? ""} required={true} />
+      <TiptapEditor name="khBody" id="khBody" content={kh?.bodyMarkdown || kh?.bodyHtml || ""} required={true} />
     </section>
 
     <button class="button primary" type="submit">Save changes</button>
