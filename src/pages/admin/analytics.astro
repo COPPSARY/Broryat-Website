@@ -1,0 +1,262 @@
+---
+import { requireAdmin } from "../../lib/server/auth";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import Chart from "../../components/admin/Chart.astro";
+import {
+  getAiInsightsSummary,
+  getDailyScanVolume,
+  getThreatTrend,
+  getThreatCategories,
+  getTelegramUsage,
+  getLanguageDistribution,
+  getActiveHours,
+  getUserBehavior,
+  getSecurityInsights,
+} from "../../lib/server/analytics";
+import { CHART_COLORS, seriesColor, riskColor } from "../../lib/chart-colors";
+
+export const prerender = false;
+
+const session = await requireAdmin(Astro);
+if (!session) {
+  return Astro.redirect("/admin/login/");
+}
+
+let insight = "Not enough data yet to generate insights.";
+let dailyVolume = { labels: [] as string[], datasets: [] as { label: string; data: number[] }[] };
+let threatTrend = { labels: [] as string[], datasets: [] as { label: string; data: number[] }[] };
+let threatCategories = { labels: [] as string[], data: [] as number[] };
+let usage = { messages: 0, files: 0, urls: 0, forwarded: 0, activeGroups: 0, total: 0 };
+let languages = { labels: [] as string[], data: [] as number[] };
+let hours = { labels: [] as string[], data: [] as number[] };
+let behavior = {
+  newUsers: 0,
+  returningUsers: 0,
+  avgScansPerUser: 0,
+  retention7d: 0,
+  retention30d: 0,
+  topUsers: [] as { userId: string; username: string | null; scans: number; lastActive: Date }[],
+  topGroups: [] as { chatId: string; groupName: string | null; scans: number; lastActive: Date }[],
+};
+let security = {
+  topDomains: [] as { domain: string; count: number }[],
+  topHashes: [] as { sha256: string; fileName: string | null; count: number }[],
+  trending: [] as { domain: string; thisWeek: number; lastWeek: number }[],
+  derivedKeywords: [] as { keyword: string; count: number }[],
+};
+
+try {
+  [insight, dailyVolume, threatTrend, threatCategories, usage, languages, hours, behavior, security] = await Promise.all([
+    getAiInsightsSummary(7),
+    getDailyScanVolume(14),
+    getThreatTrend(14),
+    getThreatCategories(30),
+    getTelegramUsage(7),
+    getLanguageDistribution(30),
+    getActiveHours(30),
+    getUserBehavior(30),
+    getSecurityInsights(30),
+  ]);
+} catch (err) {
+  console.error("Analytics data loading failed:", err);
+}
+
+const dailyVolumeChart = {
+  labels: dailyVolume.labels,
+  datasets: dailyVolume.datasets.map((d, i) => ({
+    label: d.label,
+    data: d.data,
+    backgroundColor: seriesColor(i),
+  })),
+};
+
+const threatTrendChart = {
+  labels: threatTrend.labels,
+  datasets: threatTrend.datasets.map((d) => ({
+    label: d.label,
+    data: d.data,
+    borderColor: riskColor(d.label),
+    backgroundColor: riskColor(d.label),
+    tension: 0.25,
+  })),
+};
+
+const threatCategoriesChart = {
+  labels: threatCategories.labels,
+  datasets: [{ data: threatCategories.data, backgroundColor: threatCategories.labels.map((_, i) => seriesColor(i)) }],
+};
+
+const languagesChart = {
+  labels: languages.labels,
+  datasets: [{ data: languages.data, backgroundColor: languages.labels.map((_, i) => seriesColor(i)) }],
+};
+
+const hoursChart = {
+  labels: hours.labels,
+  datasets: [{ label: "Scans", data: hours.data, backgroundColor: CHART_COLORS.blue }],
+};
+
+const gridOptions = { scales: { y: { beginAtZero: true, grid: { color: CHART_COLORS.gridLine } }, x: { grid: { display: false } } } };
+---
+
+<AdminLayout title="Analytics">
+  <header class="admin-topbar">
+    <div>
+      <p class="kicker">Overview</p>
+      <h1>Analytics</h1>
+    </div>
+  </header>
+
+  <section class="admin-panel admin-insight-card">
+    <h2>AI insights</h2>
+    <p>{insight}</p>
+  </section>
+
+  <section class="admin-stat-grid">
+    <article><span>Messages analyzed</span><strong>{usage.messages}</strong></article>
+    <article><span>Files uploaded</span><strong>{usage.files}</strong></article>
+    <article><span>URLs scanned</span><strong>{usage.urls}</strong></article>
+    <article><span>Forwarded messages</span><strong>{usage.forwarded}</strong></article>
+    <article><span>Active groups</span><strong>{usage.activeGroups}</strong></article>
+    <article><span>Total (7d)</span><strong>{usage.total}</strong></article>
+  </section>
+
+  <section class="admin-grid-charts">
+    <div class="admin-panel">
+      <h2>Daily scan volume</h2>
+      <Chart id="chart-daily-volume" type="bar" data={dailyVolumeChart} options={{ ...gridOptions, scales: { ...gridOptions.scales, x: { ...gridOptions.scales.x, stacked: true }, y: { ...gridOptions.scales.y, stacked: true } } }} />
+    </div>
+
+    <div class="admin-panel">
+      <h2>Threat detection trend</h2>
+      <Chart id="chart-threat-trend" type="line" data={threatTrendChart} options={gridOptions} />
+    </div>
+
+    <div class="admin-panel">
+      <h2>Threat category distribution</h2>
+      <p class="admin-panel-note">Derived (approximate) from VirusTotal detection labels — not an authoritative category field.</p>
+      <Chart id="chart-threat-categories" type="doughnut" data={threatCategoriesChart} height="16rem" />
+    </div>
+
+    <div class="admin-panel">
+      <h2>Language distribution</h2>
+      <Chart id="chart-languages" type="doughnut" data={languagesChart} height="16rem" />
+    </div>
+
+    <div class="admin-panel" style="grid-column: 1 / -1;">
+      <h2>Most active hours</h2>
+      <Chart id="chart-hours" type="bar" data={hoursChart} options={gridOptions} />
+    </div>
+  </section>
+
+  <section class="admin-panel">
+    <h2>User behavior</h2>
+    <div class="admin-stat-grid">
+      <article><span>New users (30d)</span><strong>{behavior.newUsers}</strong></article>
+      <article><span>Returning users</span><strong>{behavior.returningUsers}</strong></article>
+      <article><span>Avg scans / user</span><strong>{behavior.avgScansPerUser}</strong></article>
+      <article><span>7-day retention</span><strong>{behavior.retention7d}%</strong></article>
+      <article><span>30-day retention</span><strong>{behavior.retention30d}%</strong></article>
+    </div>
+
+    <div class="admin-grid-two">
+      <div>
+        <h3>Most active users</h3>
+        <div class="admin-table-wrap">
+          <table>
+            <thead><tr><th>User</th><th>Scans</th><th>Last active</th></tr></thead>
+            <tbody>
+              {behavior.topUsers.map((u) => (
+                <tr>
+                  <td>{u.username ?? u.userId}</td>
+                  <td>{u.scans}</td>
+                  <td>{u.lastActive.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <h3>Most active groups</h3>
+        <div class="admin-table-wrap">
+          <table>
+            <thead><tr><th>Group</th><th>Scans</th><th>Last active</th></tr></thead>
+            <tbody>
+              {behavior.topGroups.map((g) => (
+                <tr>
+                  <td>{g.groupName ?? g.chatId}</td>
+                  <td>{g.scans}</td>
+                  <td>{g.lastActive.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="admin-panel">
+    <h2>Security insights</h2>
+
+    <div class="admin-grid-two">
+      <div>
+        <h3>Top malicious domains</h3>
+        <div class="admin-table-wrap">
+          <table>
+            <thead><tr><th>Domain</th><th>Detections</th></tr></thead>
+            <tbody>
+              {security.topDomains.map((d) => (
+                <tr><td>{d.domain}</td><td>{d.count}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <h3>Top reported file hashes</h3>
+        <div class="admin-table-wrap">
+          <table>
+            <thead><tr><th>SHA-256</th><th>File</th><th>Detections</th></tr></thead>
+            <tbody>
+              {security.topHashes.map((h) => (
+                <tr>
+                  <td>{h.sha256.slice(0, 16)}…</td>
+                  <td>{h.fileName ?? "-"}</td>
+                  <td>{h.count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Trending threats this week</h3>
+      <div class="admin-table-wrap">
+        <table>
+          <thead><tr><th>Domain</th><th>This week</th><th>Last week</th></tr></thead>
+          <tbody>
+            {security.trending.map((t) => (
+              <tr><td>{t.domain}</td><td>{t.thisWeek}</td><td>{t.lastWeek}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <h3>Common threat keywords</h3>
+      <p class="admin-panel-note">Derived (approximate) from VirusTotal detection labels — not an authoritative category field.</p>
+      <div class="admin-tag-list">
+        {security.derivedKeywords.map((k) => (
+          <span><b>{k.keyword}</b> · {k.count}</span>
+        ))}
+      </div>
+    </div>
+  </section>
+</AdminLayout>

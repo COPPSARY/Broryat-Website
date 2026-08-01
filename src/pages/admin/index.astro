@@ -2,6 +2,7 @@
 import { requireAdmin } from "../../lib/server/auth";
 import { getDashboardStats } from "../../lib/server/dashboard";
 import { getDbArticles } from "../../lib/server/articles";
+import { getEvaluationMetrics, type Kpi } from "../../lib/server/evaluation";
 import AdminLayout from "../../layouts/AdminLayout.astro";
 
 export const prerender = false;
@@ -14,19 +15,45 @@ if (!session) {
 let stats = { scans: 0, users: 0, urlReports: 0, userPreferences: 0, groups: 0, articles: 0, recentScans: [] as any[], groupsList: [] as any[] };
 let enArticles: any[] = [];
 let khArticles: any[] = [];
+let evaluation: Awaited<ReturnType<typeof getEvaluationMetrics>> | null = null;
 
 try {
   const loaded = await Promise.all([
     getDashboardStats(),
     getDbArticles("en", true),
     getDbArticles("kh", true),
+    getEvaluationMetrics(),
   ]);
   stats = loaded[0];
   enArticles = loaded[1];
   khArticles = loaded[2];
+  evaluation = loaded[3];
 } catch (err) {
   console.error("Dashboard data loading failed:", err);
 }
+
+function trendDirection(delta: number | null) {
+  if (delta === null) return "flat";
+  if (delta > 0) return "up";
+  if (delta < 0) return "down";
+  return "flat";
+}
+
+function trendLabel(delta: number | null) {
+  if (delta === null) return "n/a vs last week";
+  const sign = delta > 0 ? "+" : "";
+  return `${sign}${delta}% vs last week`;
+}
+
+const evaluationCards: { label: string; kpi: Kpi; suffix: string }[] = evaluation
+  ? [
+      { label: "Total requests", kpi: evaluation.totalRequests, suffix: "" },
+      { label: "VirusTotal coverage rate", kpi: evaluation.vtCoverageRate, suffix: "%" },
+      { label: "VirusTotal pending rate", kpi: evaluation.vtPendingRate, suffix: "%" },
+      { label: "AI / VT agreement rate", kpi: evaluation.aiVtAgreementRate, suffix: "%" },
+      { label: "High-risk detection rate", kpi: evaluation.highRiskRate, suffix: "%" },
+    ]
+  : [];
 ---
 
 <AdminLayout title="Dashboard">
@@ -46,57 +73,24 @@ try {
     <article><span>DB articles</span><strong>{stats.articles}</strong></article>
   </section>
 
-  <section class="admin-grid-two">
-    <div class="admin-panel">
-      <h2>Recent scans</h2>
-      <div class="admin-table-wrap">
-        <table>
-          <thead>
-            <tr><th>Date</th><th>User</th><th>Type</th><th>Risk</th><th>Domain</th></tr>
-          </thead>
-          <tbody>
-            {stats.recentScans.map((scan) => (
-              <tr>
-                <td>{scan.created_at.toLocaleString()}</td>
-                <td>{scan.user_id}</td>
-                <td>{scan.input_type}</td>
-                <td>{scan.final_risk_level}</td>
-                <td>{scan.domain ?? "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {stats.recentScans.length >= 5 && (
-        <div class="admin-load-more">
-          <button type="button" data-load-more="scans">Load more</button>
-        </div>
-      )}
-    </div>
-
-    <div class="admin-panel">
-      <h2>Groups</h2>
-      <div class="admin-table-wrap">
-        <table>
-          <thead>
-            <tr><th>Group</th><th>Language</th><th>Updated</th></tr>
-          </thead>
-          <tbody>
-            {stats.groupsList.map((group) => (
-              <tr>
-                <td>{group.group_name ?? group.chat_id}</td>
-                <td>{group.language ?? "-"}</td>
-                <td>{group.updated_at.toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {stats.groupsList.length >= 5 && (
-        <div class="admin-load-more">
-          <button type="button" data-load-more="groups">Load more</button>
-        </div>
-      )}
+  <section class="admin-panel">
+    <h2>Bot evaluation</h2>
+    <p class="admin-panel-note">
+      VirusTotal coverage/pending rates reflect the verdict VirusTotal returned for a scan (not raw API call telemetry),
+      and AI/VT agreement measures how often the AI's initial risk level matched the final risk level — a proxy for
+      detection consistency, not a labeled-accuracy metric. Figures cover the last 7 days.
+    </p>
+    <div class="admin-stat-grid">
+      {evaluationCards.map((card) => (
+        <article>
+          <span>{card.label}</span>
+          <strong>{card.kpi.value}{card.suffix}</strong>
+          <span class="admin-kpi-trend" data-direction={trendDirection(card.kpi.deltaPct)}>
+            {trendDirection(card.kpi.deltaPct) === "up" ? "▲" : trendDirection(card.kpi.deltaPct) === "down" ? "▼" : "—"}
+            {" "}{trendLabel(card.kpi.deltaPct)}
+          </span>
+        </article>
+      ))}
     </div>
   </section>
 
